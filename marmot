@@ -1,0 +1,12 @@
+#!/bin/bash
+# Wrapper script for marmot-cli that loads credentials automatically
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE_DIR="$(dirname "$SCRIPT_DIR")"
+CREDS="$WORKSPACE_DIR/.credentials/nostr.json"
+
+if [ -f "$CREDS" ]; then
+    export NOSTR_NSEC=$(python3 -c "import json; d=json.load(open('$CREDS')); print(d['nsec'])")
+fi
+
+export PATH="$HOME/.cargo/bin:$PATH"
+exec "$SCRIPT_DIR/target/debug/marmot-cli" -q "$@"

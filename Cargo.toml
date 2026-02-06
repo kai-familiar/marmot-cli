@@ -1,0 +1,22 @@
+[package]
+name = "marmot-cli"
+version = "0.1.0"
+edition = "2021"
+description = "CLI tool for Marmot/Whitenoise E2E encrypted messaging over Nostr"
+
+[dependencies]
+# Use same MDK version as Whitenoise for compatibility
+mdk-core = { git = "https://github.com/parres-hq/mdk", rev = "f46875ec6fbe1cd616e9dfb4d2aa10f56044e58c" }
+mdk-sqlite-storage = { git = "https://github.com/parres-hq/mdk", rev = "f46875ec6fbe1cd616e9dfb4d2aa10f56044e58c" }
+mdk-storage-traits = { git = "https://github.com/parres-hq/mdk", rev = "f46875ec6fbe1cd616e9dfb4d2aa10f56044e58c" }
+# Match nostr versions with MDK (0.43)
+nostr = { version = "0.43", features = ["std", "nip44", "nip59"] }
+nostr-sdk = { version = "0.43", features = ["nip59"] }
+tokio = { version = "1", features = ["full"] }
+clap = { version = "4", features = ["derive", "env"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1"
+hex = "0.4"
