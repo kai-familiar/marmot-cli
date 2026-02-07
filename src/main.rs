@@ -9,7 +9,23 @@ use mdk_sqlite_storage::MdkSqliteStorage;
 use nostr::prelude::*;
 use nostr::nips::nip59;
 use nostr_sdk::prelude::*;
+use serde::Serialize;
 use std::path::PathBuf;
+use std::process::{Command, Stdio};
+use std::io::Write;
+
+/// JSON payload for --on-message callback
+#[derive(Serialize)]
+struct MessagePayload {
+    message_id: String,
+    group_id: String,
+    group_name: String,
+    sender: String,
+    sender_hex: String,
+    content: String,
+    timestamp: u64,
+    is_me: bool,
+}
 
 #[derive(Parser)]
 #[command(name = "marmot-cli")]
@@ -85,6 +101,10 @@ enum Commands {
         /// Poll interval in seconds
         #[arg(short, long, default_value_t = 5)]
         interval: u64,
+
+        /// Script/command to execute for each message (receives JSON via stdin)
+        #[arg(long)]
+        on_message: Option<String>,
     },
 
     /// Fetch key package for a user
@@ -334,9 +354,10 @@ impl MarmotCli {
         Ok(())
     }
 
-    async fn receive_messages(&self) -> Result<(usize, usize)> {
+    async fn receive_messages(&self) -> Result<(usize, usize, Vec<MessagePayload>)> {
         let mut welcomes_found = 0;
         let mut messages_found = 0;
+        let mut payloads: Vec<MessagePayload> = Vec::new();
 
         // === Phase 1: Fetch and process gift-wrapped welcome messages ===
         let filter = Filter::new()
@@ -401,8 +422,20 @@ impl MarmotCli {
                                 let sender = msg.pubkey.to_bech32()
                                     .unwrap_or_else(|_| "unknown".to_string());
                                 let is_me = msg.pubkey == self.keys.public_key();
-                                let prefix = if is_me { "→ You".to_string() } else { sender };
+                                let prefix = if is_me { "→ You".to_string() } else { sender.clone() };
                                 println!("[{}] {}: {}", group.name, prefix, msg.content);
+
+                                // Build payload for callback
+                                payloads.push(MessagePayload {
+                                    message_id: event.id.to_hex(),
+                                    group_id: hex::encode(group.mls_group_id.as_slice()),
+                                    group_name: group.name.clone(),
+                                    sender,
+                                    sender_hex: msg.pubkey.to_hex(),
+                                    content: msg.content.clone(),
+                                    timestamp: event.created_at.as_u64(),
+                                    is_me,
+                                });
                             }
                             MessageProcessingResult::Commit { .. } => {
                                 tracing::debug!("Processed commit for group {}", group.name);
@@ -417,7 +450,26 @@ impl MarmotCli {
             }
         }
 
-        Ok((welcomes_found, messages_found))
+        Ok((welcomes_found, messages_found, payloads))
+    }
+
+    /// Invoke callback script with message payload as JSON stdin
+    fn invoke_callback(script: &str, payload: &MessagePayload) -> Result<i32> {
+        let json = serde_json::to_string(payload)?;
+        
+        let mut child = Command::new("sh")
+            .arg("-c")
+            .arg(script)
+            .stdin(Stdio::piped())
+            .spawn()
+            .context("Failed to spawn callback process")?;
+
+        if let Some(mut stdin) = child.stdin.take() {
+            stdin.write_all(json.as_bytes())?;
+        }
+
+        let status = child.wait()?;
+        Ok(status.code().unwrap_or(-1))
     }
 
     async fn accept_welcome(&self, event_id_str: &str) -> Result<()> {
@@ -499,7 +551,7 @@ async fn main() -> Result<()> {
         }
         Commands::Receive => {
             println!("Checking for new messages...");
-            let (welcomes, messages) = marmot.receive_messages().await?;
+            let (welcomes, messages, _) = marmot.receive_messages().await?;
             if welcomes == 0 && messages == 0 {
                 println!("No new messages.");
             } else {
@@ -509,10 +561,37 @@ async fn main() -> Result<()> {
         Commands::AcceptWelcome { event_id } => {
             marmot.accept_welcome(&event_id).await?;
         }
-        Commands::Listen { interval } => {
-            println!("Listening for messages (Ctrl+C to stop, poll every {}s)...", interval);
+        Commands::Listen { interval, on_message } => {
+            if let Some(ref script) = on_message {
+                println!("Listening for messages with callback (Ctrl+C to stop, poll every {}s)...", interval);
+                println!("Callback: {}", script);
+            } else {
+                println!("Listening for messages (Ctrl+C to stop, poll every {}s)...", interval);
+            }
             loop {
-                let (w, m) = marmot.receive_messages().await?;
+                let (w, m, payloads) = marmot.receive_messages().await?;
+                
+                // If callback is set, invoke it for each message
+                if let Some(ref script) = on_message {
+                    for payload in &payloads {
+                        // Skip our own messages in callback
+                        if payload.is_me {
+                            continue;
+                        }
+                        match MarmotCli::invoke_callback(script, payload) {
+                            Ok(0) => {
+                                tracing::debug!("Callback succeeded for message {}", payload.message_id);
+                            }
+                            Ok(code) => {
+                                eprintln!("⚠️ Callback exited with code {} for message {}", code, &payload.message_id[..16]);
+                            }
+                            Err(e) => {
+                                eprintln!("❌ Callback failed for message {}: {}", &payload.message_id[..16], e);
+                            }
+                        }
+                    }
+                }
+                
                 if w > 0 || m > 0 {
                     println!("--- {} welcome(s), {} message(s) ---", w, m);
                 }
