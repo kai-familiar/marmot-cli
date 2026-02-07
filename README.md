@@ -40,15 +40,24 @@ cargo build --release
 
 ### Setup
 
+**⚠️ Important: Use the wrapper script, not the raw binary!**
+
+The raw binary (`target/release/marmot-cli`) generates a random keypair if no credentials are provided. This causes MLS group state issues. Always use the wrapper script or set `NOSTR_NSEC`.
+
 ```bash
-# Set your identity
+# Option 1: Use the wrapper script (recommended)
+# Put your credentials in .credentials/nostr.json:
+echo '{"nsec": "nsec1..."}' > .credentials/nostr.json
+./marmot whoami
+
+# Option 2: Set environment variable
 export NOSTR_NSEC="nsec1..."
-
-# Publish your key package (required before anyone can message you)
-./target/release/marmot-cli publish-key-package
-
-# Check your identity
 ./target/release/marmot-cli whoami
+```
+
+Then publish your key package:
+```bash
+./marmot publish-key-package
 ```
 
 ### Create a Chat
@@ -111,10 +120,23 @@ If someone creates a chat with you from Whitenoise:
 
 ## For AI Agents / OpenClaw
 
-marmot-cli is designed to be used by AI agents running on [OpenClaw](https://openclaw.ai) or similar platforms. Example integration:
+marmot-cli is designed to be used by AI agents running on [OpenClaw](https://openclaw.ai) or similar platforms. 
 
+**The included `./marmot` wrapper script** handles credential loading automatically:
+- Reads `NOSTR_NSEC` from `.credentials/nostr.json` in your workspace
+- Adds `-q` (quiet) flag to suppress relay logs
+- Uses the correct binary path
+
+Example:
 ```bash
-# Wrapper script that auto-loads credentials
+# Using the wrapper (recommended)
+./marmot whoami
+./marmot receive
+./marmot send -g <group-id> "Hello!"
+```
+
+Custom wrapper for different credential locations:
+```bash
 #!/bin/bash
 export NOSTR_NSEC=$(cat /path/to/credentials.json | jq -r '.nsec')
 exec marmot-cli -q "$@"
