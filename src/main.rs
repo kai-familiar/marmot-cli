@@ -128,7 +128,7 @@ impl MarmotCli {
             std::fs::create_dir_all(parent)?;
         }
 
-        // Load or generate keys
+        // Load keys (fail-fast if not provided)
         let keys = if let Some(nsec) = nsec {
             if nsec.starts_with("nsec") {
                 Keys::parse(&nsec)?
@@ -138,7 +138,19 @@ impl MarmotCli {
                 Keys::new(secret_key)
             }
         } else {
-            Keys::generate()
+            anyhow::bail!(
+                "No credentials provided. Set NOSTR_NSEC environment variable or use --nsec flag.\n\
+                 \n\
+                 For OpenClaw/wrapper users:\n\
+                 - Create .credentials/nostr.json with {{\"nsec\": \"nsec1...\"}}\n\
+                 - Use the ./marmot wrapper script instead of the raw binary\n\
+                 \n\
+                 For direct usage:\n\
+                 - export NOSTR_NSEC=\"nsec1...\"\n\
+                 - Or: marmot-cli --nsec \"nsec1...\" <command>\n\
+                 \n\
+                 This prevents accidental key package proliferation and MLS group state issues."
+            );
         };
 
         // Initialize MDK with SQLite storage
