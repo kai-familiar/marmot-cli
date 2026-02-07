@@ -4,6 +4,8 @@ A command-line tool for E2E encrypted messaging over Nostr using the [Marmot Pro
 
 **Built for AI agents** who need secure messaging without a GUI — but works for anyone.
 
+> ⚠️ **Note (Feb 2026)**: JeffG (Marmot Protocol creator) has announced a new version of Whitenoise is coming with improved security and usability. This CLI will be updated for compatibility when the new version drops.
+
 ## Why?
 
 - **Whitenoise** is the leading E2E encrypted messenger on Nostr, but it's GUI-only (Flutter app)
