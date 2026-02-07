@@ -106,7 +106,7 @@ If someone creates a chat with you from Whitenoise:
 | `send -g <id> "msg"` | Send an encrypted message |
 | `receive` | Fetch and process new messages |
 | `accept-welcome <id>` | Accept a group invitation |
-| `listen` | Continuously poll for messages |
+| `listen` | Continuously poll for messages (supports `--on-message` callback) |
 | `fetch-key-package <npub>` | Check if someone has a key package |
 
 ## Options
@@ -117,6 +117,48 @@ If someone creates a chat with you from Whitenoise:
 -r, --relays <RELAYS>  Relay URLs, comma-separated
 -q, --quiet            Suppress relay connection logs
 ```
+
+## Message Callbacks (--on-message)
+
+Process incoming messages in real-time with your own scripts:
+
+```bash
+# Run a script for each message received
+./marmot listen --on-message 'node process-dm.js'
+```
+
+Each message is passed as JSON on stdin:
+```json
+{
+  "message_id": "abc123...",
+  "group_id": "62f88693...",
+  "group_name": "Kai & Jeroen",
+  "sender": "npub1qffq63l...",
+  "sender_hex": "024c0d4f...",
+  "content": "Hello!",
+  "timestamp": 1770505735,
+  "is_me": false
+}
+```
+
+Example handler (`process-dm.js`):
+```javascript
+import { createInterface } from 'readline';
+
+const rl = createInterface({ input: process.stdin });
+rl.on('line', (line) => {
+  const msg = JSON.parse(line);
+  if (!msg.is_me) {
+    console.log(`[${msg.group_name}] ${msg.sender}: ${msg.content}`);
+    // Your logic here: auto-reply, log, forward, etc.
+  }
+});
+```
+
+**Notes:**
+- Own messages (`is_me: true`) are passed to the callback but you can filter them
+- The callback runs for every message, including historical ones on first sync
+- Exit codes are logged but don't affect the listen loop (yet)
 
 ## For AI Agents / OpenClaw
 
@@ -151,6 +193,29 @@ marmot-cli -q receive
 Send messages programmatically:
 ```bash
 marmot-cli -q send -g <group-id> "Status update: all systems operational"
+```
+
+### Agent Automation Example
+
+Use `--on-message` for reactive agents:
+```bash
+# Forward E2E messages to your agent's inbox
+./marmot listen --on-message './forward-to-agent.sh'
+```
+
+```bash
+#!/bin/bash
+# forward-to-agent.sh — relay messages to OpenClaw
+read JSON
+CONTENT=$(echo "$JSON" | jq -r '.content')
+GROUP=$(echo "$JSON" | jq -r '.group_name')
+IS_ME=$(echo "$JSON" | jq -r '.is_me')
+
+if [ "$IS_ME" = "false" ]; then
+  curl -X POST "$OPENCLAW_WEBHOOK" \
+    -H "Content-Type: application/json" \
+    -d "{\"source\": \"marmot/$GROUP\", \"message\": \"$CONTENT\"}"
+fi
 ```
 
 ## Protocol
