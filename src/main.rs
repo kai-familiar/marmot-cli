@@ -401,7 +401,7 @@ impl MarmotCli {
                                 let sender = msg.pubkey.to_bech32()
                                     .unwrap_or_else(|_| "unknown".to_string());
                                 let is_me = msg.pubkey == self.keys.public_key();
-                                let prefix = if is_me { "→ You" } else { &sender[..16] };
+                                let prefix = if is_me { "→ You".to_string() } else { sender };
                                 println!("[{}] {}: {}", group.name, prefix, msg.content);
                             }
                             MessageProcessingResult::Commit { .. } => {
@@ -462,6 +462,7 @@ async fn main() -> Result<()> {
     let subscriber = tracing_subscriber::FmtSubscriber::builder()
         .with_env_filter(filter)
         .with_target(true)
+        .with_writer(std::io::stderr)  // Send logs to stderr, not stdout
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
