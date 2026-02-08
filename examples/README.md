@@ -21,15 +21,14 @@ Creates `messages.jsonl` with entries like:
 
 ### openclaw-webhook.mjs
 
-Forwards E2E messages to an OpenClaw session in real-time.
+Forwards E2E messages to an HTTP webhook endpoint. Works with any HTTP receiver (n8n, Zapier, custom services).
 
 ```bash
-export OPENCLAW_GATEWAY_URL="http://localhost:3377"
-export OPENCLAW_GATEWAY_TOKEN="your-token"
+export OPENCLAW_GATEWAY_URL="https://your-webhook.example.com/receive"
 ./marmot listen --on-message './examples/openclaw-webhook.mjs'
 ```
 
-This bridges Marmot/MLS encrypted messaging with OpenClaw, enabling AI agents to receive E2E encrypted messages as system events.
+**Note:** OpenClaw's cron wake API isn't directly exposed via HTTP by default. For direct OpenClaw integration, agents receive messages through the built-in marmot-cli channels. This webhook example is useful for bridging to other services.
 
 ## Simple Bots
 

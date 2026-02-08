@@ -1,18 +1,27 @@
 #!/usr/bin/env node
 /**
- * openclaw-webhook.mjs - Forward E2E messages to OpenClaw via cron wake
+ * openclaw-webhook.mjs - Forward E2E messages to OpenClaw via HTTP webhook
  * 
  * This handler receives messages from marmot-cli's --on-message callback
- * and forwards them to an OpenClaw session using a cron wake event.
+ * and forwards them to an external HTTP endpoint (e.g., OpenClaw, n8n, custom).
  * 
- * This enables AI agents running on OpenClaw to receive E2E encrypted
- * messages in real-time, bridging Marmot/MLS with the OpenClaw ecosystem.
+ * ⚠️ NOTE: OpenClaw's built-in cron wake API is not directly exposed via HTTP
+ * by default. This example is a template for:
+ *   - Custom webhook receivers
+ *   - n8n/Zapier webhooks
+ *   - Any HTTP endpoint that accepts POST JSON
+ * 
+ * For OpenClaw integration:
+ *   - Use the built-in marmot-cli listener approach (see TROUBLESHOOTING.md)
+ *   - Or set up a custom HTTP bridge
  * 
  * Setup:
- *   1. Configure GATEWAY_URL and GATEWAY_TOKEN below
+ *   1. Configure WEBHOOK_URL for your target endpoint
  *   2. Run: ./marmot listen --on-message './examples/openclaw-webhook.mjs'
  * 
- * The message will appear in your OpenClaw session as a system event.
+ * Example with a custom endpoint:
+ *   OPENCLAW_GATEWAY_URL="https://your-webhook.example.com" \
+ *   ./marmot listen --on-message './examples/openclaw-webhook.mjs'
  */
 
 import https from 'https';
