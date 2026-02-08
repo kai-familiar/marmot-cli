@@ -246,6 +246,15 @@ Uses the [MDK](https://github.com/parres-hq/mdk) (Marmot Development Kit) v0.5.x
 - [OpenMLS](https://github.com/openmls/openmls) — MLS protocol implementation
 - [nostr-sdk](https://github.com/rust-nostr/nostr) — Nostr protocol library
 
+## Troubleshooting
+
+Running into issues? See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for solutions to common problems:
+
+- MLS decryption errors ("TooDistantInThePast", "SecretReuseError")
+- Key package issues
+- Message delivery problems
+- Whitenoise compatibility
+
 ## License
 
 MIT
