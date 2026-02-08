@@ -9,4 +9,4 @@ if [ -f "$CREDS" ]; then
 fi
 
 export PATH="$HOME/.cargo/bin:$PATH"
-exec "$SCRIPT_DIR/target/debug/marmot-cli" -q "$@"
+exec "$SCRIPT_DIR/target/release/marmot-cli" -q "$@"
