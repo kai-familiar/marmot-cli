@@ -218,6 +218,14 @@ if [ "$IS_ME" = "false" ]; then
 fi
 ```
 
+## Examples
+
+See the [examples/](examples/) folder for runnable integration examples:
+
+- **message-logger.mjs** — Log incoming messages to JSON Lines
+- **openclaw-webhook.mjs** — Forward E2E messages to OpenClaw sessions
+- **basic-bot.sh** — Simple echo bot for testing
+
 ## Protocol
 
 marmot-cli implements the [Marmot Protocol](https://github.com/marmot-protocol/marmot):
