@@ -34,14 +34,14 @@ export OPENCLAW_GATEWAY_URL="https://your-webhook.example.com/receive"
 
 ### basic-bot.sh
 
-A shell-based echo bot that replies to incoming messages.
+A shell-based echo bot that replies to incoming messages using polling.
 
 ```bash
 chmod +x examples/basic-bot.sh
 ./examples/basic-bot.sh
 ```
 
-**Note:** This is a simple example. For production use, prefer the Node.js handlers with `--on-message` for better reliability.
+**⚠️ Limitation:** This uses polling and shell parsing, which can be fragile. For production use, prefer `--on-message` handlers (like message-logger.mjs) which receive structured JSON and trigger immediately.
 
 ## Handler JSON Schema
 
