@@ -93,7 +93,7 @@ export NOSTR_NSEC="nsec1..."
 ./target/release/marmot-cli whoami
 ```
 
-**Prevention:** The v1.1+ binary now errors if no credentials are found, instead of generating random keys.
+**Prevention:** Recent builds error if no credentials are found, instead of generating random keys. Always verify with `./marmot whoami` that you're using your intended identity.
 
 ---
 
