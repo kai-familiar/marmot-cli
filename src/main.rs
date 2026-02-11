@@ -154,7 +154,11 @@ impl MarmotCli {
         };
 
         // Initialize MDK with SQLite storage
-        let storage = MdkSqliteStorage::new(&db_path)
+        // Note: Using unencrypted storage for headless CLI environments.
+        // The database contains MLS group state and exporter secrets.
+        // In production GUI apps, use MdkSqliteStorage::new() with keyring integration.
+        // TODO: Add optional keyring support via --encrypted flag
+        let storage = MdkSqliteStorage::new_unencrypted(&db_path)
             .context("Failed to create SQLite storage")?;
         let mdk = MDK::new(storage);
 
@@ -405,7 +409,7 @@ impl MarmotCli {
         }
 
         // === Phase 2: Check for pending welcomes and show them ===
-        if let Ok(pending) = self.mdk.get_pending_welcomes() {
+        if let Ok(pending) = self.mdk.get_pending_welcomes(None) {
             for welcome in &pending {
                 println!("⏳ Pending welcome: '{}' (event: {})", welcome.group_name, &welcome.id.to_hex()[..16]);
                 println!("   Run: marmot-cli accept-welcome {}", welcome.id.to_hex());
@@ -445,7 +449,7 @@ impl MarmotCli {
                                     sender,
                                     sender_hex: msg.pubkey.to_hex(),
                                     content: msg.content.clone(),
-                                    timestamp: event.created_at.as_u64(),
+                                    timestamp: event.created_at.as_secs(),
                                     is_me,
                                 });
                             }
