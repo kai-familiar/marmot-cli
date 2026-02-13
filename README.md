@@ -22,13 +22,14 @@ You can message Whitenoise users from the command line, and they can message you
 - 🤖 **Agent-friendly** — designed for autonomous AI agents
 - 🌐 **Decentralized** — uses Nostr relays, no central server
 - 🆔 **Nostr identity** — uses your existing Nostr keypair
+- 🔐 **NIP-46 remote signing** — keep your nsec in a bunker, sign remotely (new in v0.2)
 
 ## Quick Start
 
 ### Prerequisites
 
 - Rust toolchain (1.90.0+)
-- A Nostr keypair (nsec)
+- A Nostr keypair (nsec) **or** a NIP-46 bunker URI
 
 ### Build
 
@@ -58,6 +59,30 @@ export NOSTR_NSEC="nsec1..."
 Then publish your key package:
 ```bash
 ./marmot publish-key-package
+```
+
+### Setup with NIP-46 Bunker (Recommended for Agents)
+
+Instead of exposing your nsec directly, use a NIP-46 remote signer (bunker):
+
+```bash
+# Initialize with bunker URI
+marmot-cli init --bunker "bunker://<signer-pubkey>?relay=wss://relay.nsec.app&secret=YOUR_TOKEN"
+
+# The bunker connection is stored automatically — no nsec needed!
+marmot-cli whoami    # Shows "signer: NIP-46 bunker"
+marmot-cli publish-key-package
+```
+
+**Compatible bunkers:** [nsecbunkerd](https://github.com/kind-0/nsecbunkerd), [Amber](https://github.com/nicholasabruzzi/amber) (Android), [Nostr Keyguard](https://github.com/nicholasabruzzi/nostr-keyguard)
+
+**Migrating from nsec to bunker:**
+```bash
+# Atomic migration — verifies identity match, preserves MLS group state
+marmot-cli migrate-to-bunker --bunker "bunker://..." 
+
+# Then remove nsec from your environment
+unset NOSTR_NSEC
 ```
 
 ### Create a Chat
@@ -99,7 +124,9 @@ If someone creates a chat with you from Whitenoise:
 
 | Command | Description |
 |---------|-------------|
-| `whoami` | Show your Nostr identity |
+| `init --bunker "bunker://..."` | Initialize with NIP-46 bunker (recommended) |
+| `init --nsec "nsec1..."` | Initialize with direct nsec |
+| `whoami` | Show your Nostr identity and signing mode |
 | `publish-key-package` | Publish MLS key package to relays (do this first!) |
 | `create-chat <npub>` | Create a new encrypted chat |
 | `list-chats` | List all your chats |
@@ -108,14 +135,17 @@ If someone creates a chat with you from Whitenoise:
 | `accept-welcome <id>` | Accept a group invitation |
 | `listen` | Continuously poll for messages (supports `--on-message` callback) |
 | `fetch-key-package <npub>` | Check if someone has a key package |
+| `migrate-to-bunker` | Atomically migrate from nsec to bunker signing |
+| `signer-status` | Show current signing mode and bunker connection info |
 
 ## Options
 
 ```
--n, --nsec <NSEC>      Nostr private key (or set NOSTR_NSEC env var)
--d, --db <DB>          Database path [default: ~/.marmot-cli/marmot.db]
--r, --relays <RELAYS>  Relay URLs, comma-separated
--q, --quiet            Suppress relay connection logs
+-n, --nsec <NSEC>        Nostr private key (or set NOSTR_NSEC env var)
+-b, --bunker <URI>       NIP-46 bunker URI (or set NOSTR_BUNKER env var)
+-d, --db <DB>            Database path [default: ~/.marmot-cli/marmot.db]
+-r, --relays <RELAYS>    Relay URLs, comma-separated
+-q, --quiet              Suppress relay connection logs
 ```
 
 ## Message Callbacks (--on-message)
@@ -246,6 +276,24 @@ Uses the [MDK](https://github.com/parres-hq/mdk) (Marmot Development Kit) v0.5.x
 - Group messages use ephemeral keypairs for metadata protection
 
 **Important**: Your `nsec` is used only for Nostr event signing and gift-wrap operations. MLS uses separate signing keys internally.
+
+### NIP-46 Remote Signing (Bunker Mode)
+
+For production deployments and long-running agents, bunker mode is **strongly recommended**:
+
+- **Private key isolation**: Your nsec stays in the bunker process; marmot-cli never sees it
+- **Revocable access**: Compromised agent? Revoke the bunker token without rotating your Nostr identity
+- **Audit trail**: All signing requests are logged locally (`~/.marmot-cli/marmot.audit.jsonl`)
+- **Rate limiting**: Bunkers can enforce signing rate limits and spending caps
+- **HSM support**: Bunkers can use hardware security modules for key storage
+
+```
+┌─────────────────┐     NIP-46 protocol      ┌───────────────────┐
+│   marmot-cli    │ ◄──── (via relay) ──────► │  Bunker (signer)  │
+│  (your agent)   │     sign_event request    │  (holds nsec)     │
+│  no nsec needed │     ◄── signed event ──── │  rate limits, ACL │
+└─────────────────┘                           └───────────────────┘
+```
 
 ## Credits
 

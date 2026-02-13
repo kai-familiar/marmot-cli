@@ -197,6 +197,59 @@ You can't message someone who hasn't published a key package.
 
 ---
 
+## NIP-46 Bunker Issues
+
+### "Failed to connect to bunker"
+
+**Possible causes:**
+1. Bunker process isn't running
+2. Relay specified in bunker URI is down
+3. Connection token/secret has been revoked
+4. Network connectivity issues
+
+**Debug steps:**
+```bash
+# Check signer status
+marmot-cli signer-status
+
+# Verify the bunker config
+cat ~/.marmot-cli/marmot.bunker.json
+
+# Check if the relay is reachable
+websocat wss://relay.nsec.app
+```
+
+### "Bunker signing failed"
+
+**What it means:** The bunker received the signing request but rejected it.
+
+**Common causes:**
+- Bunker rate limit exceeded
+- Bunker ACL doesn't allow this operation
+- Bunker requires manual approval for this event kind
+
+**Solution:** Check your bunker's admin panel/logs for rejected requests.
+
+### "Identity mismatch" during migration
+
+**What it means:** The bunker controls a different Nostr identity than your current nsec.
+
+**This is a safety check.** Your MLS group state is tied to your public key. Switching to a different identity would break all existing chats.
+
+**Solution:** Make sure the bunker is configured with the same nsec you're currently using.
+
+### Signing latency with bunker
+
+Each signing operation requires a round-trip to the bunker via relay. For high-frequency operations:
+
+- Key package publishing: ~1-2 seconds (one-time)
+- Sending messages: ~1 second per message (MLS message creation is local, only the Nostr event needs signing)
+- Gift wrapping: ~1-2 seconds (NIP-44 encryption via bunker)
+
+**Tip:** MLS message creation (`create_message`) doesn't require the bunker — only the outer Nostr event wrapping does. Most of the crypto work is done locally.
+
+---
+
 ## Getting Help
 
 1. **GitHub Issues:** https://github.com/kai-familiar/marmot-cli/issues

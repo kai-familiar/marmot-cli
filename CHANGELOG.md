@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.2.0] - 2026-02-13
+
+### Added
+
+- **NIP-46 Remote Signing Support** (Closes #5)
+  - `--bunker` flag and `NOSTR_BUNKER` env var for bunker:// URI
+  - `init --bunker` command for first-time bunker setup
+  - `migrate-to-bunker` command for atomic nsec → bunker migration
+  - `signer-status` command to inspect signing mode and connection info
+  - Bunker connection config persisted in `marmot.bunker.json` (auto-reconnect)
+  - Client keypair generated and stored for stable NIP-46 sessions
+  - All signing operations (events, gift-wrap, NIP-44 encryption) routed through bunker
+  - Audit logging of all signing requests to `marmot.audit.jsonl`
+  - Graceful bunker-offline handling with clear error messages
+  - Backward compatible: `--nsec` / `NOSTR_NSEC` still works as before
+
+### Changed
+
+- `whoami` now shows signing mode (direct/bunker)
+- `nostr-connect` v0.44.0 added as dependency
+- Signer abstraction (`MarmotSigner`) unifies direct and remote signing
+- Warning emitted when using direct nsec in long-running processes
+
 ## [Unreleased] - 2026-02-11
 
 ### Changed
