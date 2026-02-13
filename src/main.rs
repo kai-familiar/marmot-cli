@@ -229,7 +229,7 @@ impl MarmotCli {
 
         let event = events.first().cloned()
             .context("No key package found for this user. They need to run `publish-key-package` first.")?;
-        println!("✓ Found key package (event: {})", &event.id.to_hex()[..16]);
+        println!("✓ Found key package (event: {})", event.id.to_hex());
         Ok(event)
     }
 
@@ -346,7 +346,7 @@ impl MarmotCli {
                         match self.mdk.process_welcome(&event.id, &unwrapped.rumor) {
                             Ok(_) => {
                                 welcomes_found += 1;
-                                println!("📨 New welcome received (event: {})", &event.id.to_hex()[..16]);
+                                println!("📨 New welcome received (event: {})", event.id.to_hex());
                             }
                             Err(e) => { tracing::debug!("Welcome processing: {}", e); }
                         }
