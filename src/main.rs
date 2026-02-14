@@ -126,6 +126,15 @@ enum Commands {
     },
     /// Show signing mode and bunker connection status
     SignerStatus,
+    /// Leave a group/chat (removes yourself from the group)
+    LeaveChat {
+        /// Group ID (hex, from list-chats). Can be partial.
+        #[arg(short, long)]
+        group: String,
+        /// Skip confirmation prompt
+        #[arg(long)]
+        force: bool,
+    },
 }
 
 struct MarmotCli {
@@ -322,6 +331,24 @@ impl MarmotCli {
         let message_event = self.mdk.create_message(&mls_group_id, rumor)?;
         let send_result = self.client.send_event(&message_event).await?;
         println!("✓ Message sent to {} relays", send_result.success.len());
+        Ok(())
+    }
+
+    async fn leave_chat(&self, group_id_str: &str) -> Result<()> {
+        let mls_group_id = self.resolve_group_id(group_id_str)?;
+        
+        // Get group info for display
+        let groups = self.mdk.get_groups()?;
+        let group = groups.iter().find(|g| g.mls_group_id == mls_group_id)
+            .ok_or_else(|| anyhow::anyhow!("Group not found"))?;
+        let group_name = group.name.clone();
+        
+        // Create leave proposal and publish
+        let leave_result = self.mdk.leave_group(&mls_group_id)?;
+        let send_result = self.client.send_event(&leave_result.evolution_event).await?;
+        
+        println!("✓ Left group '{}' (published to {} relays)", group_name, send_result.success.len());
+        println!("  Note: The group will be removed from your list after other members process the leave.");
         Ok(())
     }
 
@@ -675,6 +702,25 @@ async fn main() -> Result<()> {
         }
         Commands::FetchKeyPackage { npub } => {
             marmot.fetch_key_package(&npub).await?;
+        }
+        Commands::LeaveChat { group, force } => {
+            let mls_group_id = marmot.resolve_group_id(&group)?;
+            let groups = marmot.mdk.get_groups()?;
+            let grp = groups.iter().find(|g| g.mls_group_id == mls_group_id)
+                .ok_or_else(|| anyhow::anyhow!("Group not found"))?;
+            
+            if !force {
+                println!("Leave group '{}'? This cannot be undone.", grp.name);
+                print!("Type 'yes' to confirm: ");
+                std::io::stdout().flush()?;
+                let mut input = String::new();
+                std::io::stdin().read_line(&mut input)?;
+                if input.trim().to_lowercase() != "yes" {
+                    println!("Cancelled.");
+                    return Ok(());
+                }
+            }
+            marmot.leave_chat(&group).await?;
         }
         Commands::MigrateToBunker { .. } | Commands::SignerStatus => {
             unreachable!("Handled above");
