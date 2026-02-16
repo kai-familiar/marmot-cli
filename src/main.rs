@@ -359,9 +359,13 @@ impl MarmotCli {
         let mut payloads: Vec<MessagePayload> = Vec::new();
 
         // Phase 1: Fetch and process gift-wrapped welcome messages
+        // NIP-59 randomizes timestamps up to 2 days in the past, so we need
+        // explicit `since` to ensure we don't miss events with past timestamps
+        let two_days_ago = Timestamp::now() - 2 * 24 * 60 * 60;
         let filter = Filter::new()
             .kind(Kind::GiftWrap)
             .pubkey(self.signer.public_key())
+            .since(two_days_ago)
             .limit(100);
         let events = self.client
             .fetch_events(filter, std::time::Duration::from_secs(10))
