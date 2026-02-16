@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.1] - 2026-02-16
+
+### Changed
+
+- **Updated to MDK 0.5.3 (commit 1517b34a)**
+  - Includes critical split-brain fix (PR #179): snapshot/rollback now correctly handles MLS epoch state
+  - Includes key package hash_ref return (PR #178): enables future key package deletion
+  - This may improve compatibility with other MLS implementations (e.g., hzrd149's)
+
+### Fixed
+
+- Adapted to `create_key_package_for_event` API change (now returns 3-tuple with hash_ref)
+
 ## [0.2.0] - 2026-02-13
 
 ### Added

@@ -207,7 +207,8 @@ impl MarmotCli {
             println!("   (bunker must be online for signing)");
         }
 
-        let (key_package_encoded, tags) = self.mdk
+        // MDK 0.5.3+ returns hash_ref for key package deletion (PR #178)
+        let (key_package_encoded, tags, _hash_ref) = self.mdk
             .create_key_package_for_event(&self.signer.public_key(), self.relays.clone())?;
 
         let builder = EventBuilder::new(Kind::MlsKeyPackage, key_package_encoded)
